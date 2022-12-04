@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <application android:theme="@style/Theme.AppCompat.Light">
+    <application android:theme="@style/AppTheme">
         <activity
             android:name=".view.MainActivity"
             android:exported="false">
@@ -11,6 +11,13 @@
         </activity>
         <activity
             android:name=".view.CheckoutActivity"
+            android:exported="false">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
+            android:name=".view.WebviewActivity"
             android:exported="false">
             <meta-data
                 android:name="android.app.lib_name"

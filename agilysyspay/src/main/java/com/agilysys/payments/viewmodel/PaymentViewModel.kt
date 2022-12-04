@@ -24,8 +24,12 @@ class PaymentViewModel constructor(private val paymentRepository: PaymentReposit
 
     var responseString = MutableLiveData<String>()
 
-    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        onError("Exception handled: ${throwable.localizedMessage}")
+    private val exceptionHandler = CoroutineExceptionHandler { context, throwable ->
+        CoroutineScope(context).launch {
+            withContext(Dispatchers.Main){
+                onError("Exception handled: ${throwable.localizedMessage}")
+            }
+        }
     }
 
     fun performTransaction(payToken:String, headers:Map<String,String>?, cardTokenizeRequest: CardTokenizeRequest?){
@@ -39,11 +43,11 @@ class PaymentViewModel constructor(private val paymentRepository: PaymentReposit
                     is NetworkState.Error -> {
                         if (response.response.code() == 401) {
                             //movieList.postValue(NetworkState.Error())
-                            _errorMessage.value = response.response.errorBody().toString()
+                          //  _errorMessage.value = response.response.errorBody().toString()
                             _error.value = response.response;
                         } else {
                             //movieList.postValue(NetworkState.Error)
-                            _errorMessage.value = response.response.errorBody().toString()
+                           // _errorMessage.value = response.response.errorBody().toString()
                             _error.value = response.response;
                         }
                     }
@@ -53,7 +57,7 @@ class PaymentViewModel constructor(private val paymentRepository: PaymentReposit
         }
     }
 
-    private fun onError(message: String) {
+    fun onError(message: String) {
         _errorMessage.value = message
         loading.value = false
     }
