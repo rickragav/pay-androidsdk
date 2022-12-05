@@ -20,6 +20,7 @@ class MainActivity : AppCompatActivity(), Callback{
         button.setOnClickListener {
             var toastViewer = ToastViewer(this,this);
             toastViewer.toastView(this)
+
         }
 
 

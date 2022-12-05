@@ -40,7 +40,5 @@ public class ToastViewer {
         Intent intent = new Intent(activity, CheckoutActivity.class);
         intent.putExtra("request","Transaction request");
         activity.startActivityForResult(intent,200);
-
-        Toast.makeText(activity, "Hi how are you", Toast.LENGTH_SHORT).show();
     }
 }
