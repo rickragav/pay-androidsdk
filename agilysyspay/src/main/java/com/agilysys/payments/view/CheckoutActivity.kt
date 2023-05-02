@@ -363,9 +363,15 @@ class CheckoutActivity : AppCompatActivity() {
     }
 
     fun getIframeTokenCreation(){
+
         val headerMap: MutableMap<String, String> = HashMap()
         headerMap["Api-Key-Token"] = apiToken
         headerMap["Content-Type"] = "application/json"
+
+        val queryMap = HashMap<String,String>()
+        queryMap["withToken"] = "true"
+        queryMap["transactionType"] = "auth"
+
         val cardTokenizeRequest = CardTokenizeRequest()
         cardTokenizeRequest.cardholderName = cardHolderName
         cardTokenizeRequest.cardNumber = cardNumber?.trim()
@@ -382,15 +388,8 @@ class CheckoutActivity : AppCompatActivity() {
         billingAddress.country = "IN"
         cardTokenizeRequest.billingAddress = billingAddress
 
-        val queryMap = HashMap<String,String>()
-        queryMap["withToken"] = "true"
-        queryMap["transactionType"] = "auth"
+        paymentViewModel.performTransaction(payToken!!, headerMap,queryMap, cardTokenizeRequest)
 
-//        if (isToken){
-//            paymentViewModel.performTokenCreation(headerMap,cardTokenizeRequest)
-//        }else{
-            paymentViewModel.performTransaction(payToken!!, headerMap,queryMap, cardTokenizeRequest)
-        //}
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
