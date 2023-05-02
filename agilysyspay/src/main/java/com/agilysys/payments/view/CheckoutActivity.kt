@@ -1,20 +1,42 @@
 package com.agilysys.payments.view
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
+import android.util.Log
 import android.view.View
+import android.view.inputmethod.InputMethodManager
+import android.widget.Button
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModelProvider
+import com.agilysys.payments.R
+import com.agilysys.payments.controller.Callback
+import com.agilysys.payments.creditcardformatter.OtherCardTextWatcher
 import com.agilysys.payments.databinding.ActivityCheckoutBinding
 import com.agilysys.payments.model.BillingAddress
 import com.agilysys.payments.model.CardTokenizeRequest
+import com.agilysys.payments.model.PayRequest
 import com.agilysys.payments.model.repository.PaymentRepository
+import com.agilysys.payments.model.response.Response
 import com.agilysys.payments.model.services.ApiService
+import com.agilysys.payments.payview.Payview
+import com.agilysys.payments.payview.data.PayModel
 import com.agilysys.payments.viewmodel.PaymentViewModel
 import com.agilysys.payments.viewmodel.PaymentViewModelRepository
+import com.github.razir.progressbutton.attachTextChangeAnimator
+import com.github.razir.progressbutton.bindProgressButton
+import com.github.razir.progressbutton.hideProgress
+import com.github.razir.progressbutton.showProgress
+import com.google.android.recaptcha.Recaptcha
+import com.google.android.recaptcha.RecaptchaAction
+import com.google.android.recaptcha.RecaptchaClient
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,24 +50,214 @@ import java.net.URL
 
 
 class CheckoutActivity : AppCompatActivity() {
-
     private lateinit var paymentViewModel: PaymentViewModel
+
     private lateinit var binding: ActivityCheckoutBinding
     private lateinit var payResponse: String
     private var apiTokenLD = MutableLiveData<String>()
     private var payTokenLD = MutableLiveData<String>()
     private var iframeTokenLD = MutableLiveData<String>()
     private var apiToken = ""
-    private var payToken = ""
     private var getURL = ""
     private var iframeToken = ""
+    var isToken: Boolean = false
+    private var getIframeURL = ""
+    private lateinit var recaptchaClient: RecaptchaClient
+    private var isGetIframe = false
+
+
+    private var payRequest:String? = ""
+    private var payToken:String? = ""
+    private var cardNumber:String? = ""
+    private var cardCvv:String? = ""
+    private var cardMonth:String? = ""
+    private var cardYear:String? = ""
+    private var cardHolderName:String? = ""
+    lateinit var payRequestRes:PayRequest
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityCheckoutBinding.inflate(layoutInflater)
         setContentView(binding.root)
         binding.toolbar.title = "Payments"
-        setSupportActionBar(binding.toolbar)
+
+        val apiService: ApiService = ApiService.getInstance()
+        val paymentRepository = PaymentRepository(apiService)
+
+        paymentViewModel =
+            ViewModelProvider(
+                this,
+                PaymentViewModelRepository(paymentRepository)
+            )[PaymentViewModel::class.java]
+
+
+        val intent = intent
+        isToken = intent.getBooleanExtra("isToken",false)
+        payRequest = intent.getStringExtra("payRequest")
+
+        payRequestRes = Gson().fromJson(payRequest,PayRequest::class.java)
+
+        getQueryParameters(payRequestRes.uri.toString())
+
+        init()
+    }
+
+    private fun init() {
+        val payButton = binding.payview.findViewById<Button>(R.id.btn_pay)
+
+        bindProgressButton(payButton)
+
+        payButton.attachTextChangeAnimator {
+            fadeInMills = 200
+            fadeOutMills = 200
+        }
+
+        binding.payview.setOnDataChangedListener(object:Payview.OnChangelistener{
+            override fun onChangelistener(payModel: PayModel?, isFillAllComponents: Boolean) {
+                cardHolderName = payModel?.cardOwnerName
+                cardNumber = payModel?.cardNo
+                cardMonth = payModel?.cardMonth
+                cardYear = payModel?.cardYear
+                cardCvv = payModel?.cardCv
+            }
+        })
+
+        binding.payview.setPayOnclickListener{
+            cardHolderName = "Rakesh"
+            cardNumber = "4111111111111111"
+            cardMonth = "03"
+            cardYear = "2030"
+            cardCvv = "737"
+            if (validateCardDetails()){
+                showProgressCenter(payButton)
+                getIframeTokenCreation()
+                Log.d("cardDetails" ,"${cardHolderName}-${cardNumber}-${cardMonth}-${cardYear}-${cardCvv}")
+            }
+        }
+
+
+        paymentViewModel.successResponse.observe(this){
+            val response = Gson().fromJson(it,Response::class.java)
+            if (!response?.issuerUrl.isNullOrEmpty()){
+
+                val webviewIntent = Intent(this,WebviewActivity::class.java)
+                webviewIntent.putExtra("3dsRequest",it)
+                startActivityForResult(webviewIntent,205)
+
+            }else{
+                val data = Intent()
+                data.putExtra("response", it)
+                setResult(RESULT_OK, data)
+                finish()
+            }
+
+        }
+        paymentViewModel.errorMessage.observe(this){_message->
+            //handle data here
+            Log.d("@@@@@@finalRes" , _message)
+        }
+
+        paymentViewModel.errorResponse.observe(this){
+            //handle data here
+            Log.d("@@@@@@finalRes" , it)
+        }
+
+    }
+
+    fun validateCardDetails():Boolean{
+        if (cardHolderName.isNullOrEmpty()){
+            showToast("CardHolderName is empty")
+            return false
+        }
+        if (cardNumber.isNullOrEmpty()){
+            showToast("CardNumber is empty")
+            return false
+        }
+        if (cardMonth.isNullOrEmpty()){
+            showToast("CardMonth is empty")
+            return false
+        }
+        if (cardYear.isNullOrEmpty()){
+            showToast("CardYear is empty")
+            return false
+        }
+        if (cardCvv.isNullOrEmpty()){
+            showToast("CardCvv is empty")
+            return false
+        }
+
+        return true
+
+    }
+
+    fun showToast(msg:String){
+        Toast.makeText(this,msg,Toast.LENGTH_LONG).show()
+    }
+
+    private fun showProgressCenter(button: Button) {
+        button.showProgress {
+            buttonTextRes = R.string.empty
+            progressColor = this@CheckoutActivity.resources.getColor(R.color.colorPrimary)
+        }
+        button.isEnabled = false
+        Handler().postDelayed({
+            button.isEnabled = true
+            button.hideProgress("Completed")
+        }, 5000)
+    }
+
+    private fun testGoogleCAptcha() {
+        binding.cardll.visibility = View.VISIBLE
+//        binding.buttonOk.setOnClickListener {view->
+//            SafetyNet.getClient(view.context).verifyWithRecaptcha("6Lff43ojAAAAAJw_AquMGwTa2bNxyZQKyW_-xv3F")
+//                .addOnSuccessListener {
+//                    Toast.makeText(view.context,it.tokenResult,Toast.LENGTH_LONG).show()
+//                    println("captcahkey " + it.tokenResult)
+//                }
+//                .addOnFailureListener {
+//                    Toast.makeText(view.context,it.localizedMessage,Toast.LENGTH_LONG).show()
+//                }
+//        }
+    }
+
+    suspend fun enterpriseCaptcha(){
+        Recaptcha.getClient(application,"")
+                .onSuccess {
+                    recaptchaClient = it
+                    System.out.println("success")
+                    binding.cardll.visibility = View.VISIBLE
+                }
+                .onFailure {
+                    System.out.println("fail " + it.localizedMessage)
+                }
+        binding.buttonOk.setOnClickListener {
+            CoroutineScope(Dispatchers.IO).launch {
+                executeLoginAction()
+            }
+        }
+    }
+
+    private suspend fun executeLoginAction() {
+        recaptchaClient
+                .execute(RecaptchaAction.LOGIN)
+                .onSuccess { token ->
+                    // Handle success ...
+                    // See "What's next" section for instructions
+                    // about handling tokens.
+                    System.out.println("token $token")
+
+
+                }
+                .onFailure { exception ->
+                    // Handle communication errors ...
+                    // See "Handle communication errors" section
+                }
+
+    }
+
+    fun initializeIframeAPI(){
         val apiService: ApiService = ApiService.getInstance()
         val paymentRepository = PaymentRepository(apiService)
         paymentViewModel =
@@ -53,7 +265,8 @@ class CheckoutActivity : AppCompatActivity() {
                 PaymentViewModel::class.java
             )
 
-        binding.cardNumber.setText("4111111111111111")
+        binding.cardNumberformatter.addTextChangedListener(OtherCardTextWatcher(binding.cardNumberformatter))
+        binding.cardNumberformatter.setText("4111111111111111")
         binding.progressDialog.visibility = View.VISIBLE
 
         getApiToken()
@@ -88,11 +301,22 @@ class CheckoutActivity : AppCompatActivity() {
             }
         }
 
-        paymentViewModel.responseString.observe(this) { response ->
+        paymentViewModel.successResponse.observe(this) { response ->
             payResponse = response
-            val intent = Intent(this, WebviewActivity::class.java)
-            intent.putExtra("cardresponse", payResponse)
-            this.startActivityForResult(intent, 205)
+            val jsonObject = JsonParser().parse(payResponse) as JsonObject
+            val isTokenResponse = jsonObject["token"]
+            if (isTokenResponse == null){
+                val intent = Intent(this, WebviewActivity::class.java)
+                intent.putExtra("cardresponse", payResponse)
+                this.startActivityForResult(intent, 205)
+            }else{
+                //handle data here
+                val datass = Intent()
+                datass.putExtra("response", payResponse)
+                setResult(RESULT_OK, datass)
+                finish()
+            }
+
         }
 
         apiTokenLD.observe(this){ token->
@@ -118,17 +342,24 @@ class CheckoutActivity : AppCompatActivity() {
                 finish()
             }
             binding.progressDialog.visibility  = View.GONE
-            binding.cardll.visibility = View.VISIBLE
+            if (isGetIframe){
+                val intent = Intent(this, IframeActivity::class.java)
+                println("getiframeurl " + getIframeURL)
+                intent.putExtra("getIframeURL", getIframeURL)
+                this.startActivityForResult(intent, 205)
+            }else{
+                binding.cardll.visibility = View.VISIBLE
+            }
+
 
         }
 
         binding.buttonOk.setOnClickListener {
             binding.progressDialog.visibility = View.VISIBLE
+            hideKeybaord(binding.root)
             getIframeTokenCreation()
 
         }
-
-
     }
 
     fun getIframeTokenCreation(){
@@ -136,12 +367,12 @@ class CheckoutActivity : AppCompatActivity() {
         headerMap["Api-Key-Token"] = apiToken
         headerMap["Content-Type"] = "application/json"
         val cardTokenizeRequest = CardTokenizeRequest()
-        cardTokenizeRequest.cardholderName = binding.cardName.toString()
-        cardTokenizeRequest.cardNumber = binding.cardNumber.text.toString()
-        cardTokenizeRequest.expirationMonth = "03"
-        cardTokenizeRequest.expirationYear = "2030"
-        cardTokenizeRequest.cvv = "737"
-        cardTokenizeRequest.token = iframeToken
+        cardTokenizeRequest.cardholderName = cardHolderName
+        cardTokenizeRequest.cardNumber = cardNumber?.trim()
+        cardTokenizeRequest.expirationMonth = cardMonth
+        cardTokenizeRequest.expirationYear = cardYear
+        cardTokenizeRequest.cvv = cardCvv
+        cardTokenizeRequest.token = getIframeToken()
         cardTokenizeRequest.browserInfo = "{\"userAgent\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.62\"}"
         val billingAddress = BillingAddress()
         billingAddress.addressLine1 = "fww"
@@ -151,7 +382,15 @@ class CheckoutActivity : AppCompatActivity() {
         billingAddress.country = "IN"
         cardTokenizeRequest.billingAddress = billingAddress
 
-        paymentViewModel.performTransaction(payToken, headerMap, cardTokenizeRequest)
+        val queryMap = HashMap<String,String>()
+        queryMap["withToken"] = "true"
+        queryMap["transactionType"] = "auth"
+
+//        if (isToken){
+//            paymentViewModel.performTokenCreation(headerMap,cardTokenizeRequest)
+//        }else{
+            paymentViewModel.performTransaction(payToken!!, headerMap,queryMap, cardTokenizeRequest)
+        //}
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -318,6 +557,7 @@ class CheckoutActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main){
 
                    val jsonResponse = Gson().fromJson(response.toString(), JsonObject::class.java)
+                    getIframeURL = jsonResponse["uri"].toString()
                     getQueryParameters(jsonResponse["uri"].toString())
                 }
             }
@@ -325,13 +565,15 @@ class CheckoutActivity : AppCompatActivity() {
             payTokenLD.value  =  "NotValid"
         }
     }
-    fun getIframeToken() {
+    fun getIframeToken():String {
+        var issuccess = true;
+        var token = "";
         try {
             CoroutineScope(Dispatchers.IO).launch {
-                val urlConnection = URL(getURL)
+                val urlConnection = URL(payRequestRes.uri)
                 val httpURLConnection = urlConnection.openConnection() as HttpURLConnection
                 httpURLConnection.requestMethod = "GET"
-                httpURLConnection.setRequestProperty("User-Agent", "Mozilla/5.0");
+                httpURLConnection.setRequestProperty("User-Agent", "Mozilla/5.0")
                 httpURLConnection.connect()
                 val responseCode = httpURLConnection.responseCode
                 if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -349,31 +591,49 @@ class CheckoutActivity : AppCompatActivity() {
                     }
                     println(response.toString())
 
-                    withContext(Dispatchers.Main) {
-                        val token = response.split("name=\"token\" value=")[1].split(" />").get(0)
-                        iframeTokenLD.value = token.substring(1,token.length-1)
-                    }
-                }else {
-                    System.out.println("GET request not worked");
+                    Log.d("responseiframeToken" , response.toString())
+
+                    val tkn = response.split("name=\"token\" value=")[1].split(" />")[0]
+                    token = tkn.substring(1,tkn.length-1)
+
+                    issuccess = false
+
+                } else {
+                    println("GET request not worked")
                 }
             }
+            while (issuccess){
+                Thread.sleep(1000)
+            }
+            return token;
         }catch (e: Exception){
-            iframeTokenLD.value  =  "NotValid"
+            return ""
         }
     }
 
     fun getQueryParameters(url: String){
+        Log.d("query", url)
         try {
-            getURL = url.substring(1,url.length-1)
+            getURL = url.substring(1,url.length)
             val queryParams = getURL.split("?")[1].split("&")
             queryParams.forEach { value ->
+                Log.d("query", value)
                 if (value.contains("payToken=")){
-                    payTokenLD.value = value.split("payToken=")[1]
+                    payToken = value.split("payToken=")[1]
+                }
+                if (value.contains("apiToken=")){
+                    apiToken = value.split("apiToken=")[1]
                 }
             }
 
         }catch (e:Exception){
-            payTokenLD.value  =  "NotValid"
+            Log.d("payToken", e.message.toString())
         }
+    }
+
+    private fun hideKeybaord(v: View) {
+        val inputMethodManager: InputMethodManager =
+            getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        inputMethodManager.hideSoftInputFromWindow(v.applicationWindowToken, 0)
     }
 }

@@ -37,13 +37,14 @@ public class WebviewActivity extends Activity {
 //        finish();
 
         Intent intent = getIntent();
-        String cardresponse = intent.getStringExtra("cardresponse");
+        String cardresponse = intent.getStringExtra("3dsRequest");
 
         JsonObject jsonObject = (JsonObject) new JsonParser().parse(cardresponse);
         issuerUrl = jsonObject.get("issuerUrl").getAsString();
         paRequest = jsonObject.get("paRequest").getAsString();
         termUrl = jsonObject.get("termUrl").getAsString();
         md = jsonObject.get("md").getAsString();
+
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Loading...");
         progressDialog.setCancelable(false);

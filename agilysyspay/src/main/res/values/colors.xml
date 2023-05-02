@@ -1,5 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="primary_10">#ff00201c</color>
+    <color name="primary_20">#ff003731</color>
+    <color name="primary_30">#ff005048</color>
+    <color name="primary_40">#ff006a60</color>
+    <color name="primary_80">#ff53dbc9</color>
+    <color name="primary_90">#ff74f8e5</color>
+    <color name="primary_100">#ffffffff</color>
+    <color name="secondary_10">#ff05201c</color>
+    <color name="secondary_20">#ff1c3531</color>
+    <color name="secondary_30">#ff334b47</color>
+    <color name="secondary_40">#ff4a635f</color>
+    <color name="secondary_80">#ffb1ccc6</color>
+    <color name="secondary_90">#ffcce8e2</color>
+    <color name="secondary_100">#ffffffff</color>
+    <color name="tertiary_10">#ff001e31</color>
+    <color name="tertiary_20">#ff153349</color>
+    <color name="tertiary_30">#ff2d4961</color>
+    <color name="tertiary_40">#ff456179</color>
+    <color name="tertiary_80">#ffadcae6</color>
+    <color name="tertiary_90">#ffcce5ff</color>
+    <color name="tertiary_100">#ffffffff</color>
+    <color name="neutral_10">#ff191c1b</color>
+    <color name="neutral_20">#ff2d3130</color>
+    <color name="neutral_90">#ffe0e3e1</color>
+    <color name="neutral_95">#ffeff1ef</color>
+    <color name="neutral_99">#fffafdfb</color>
+    <color name="neutral_variant_30">#ff3f4947</color>
+    <color name="neutral_variant_50">#ff6f7977</color>
+    <color name="neutral_variant_60">#ff899390</color>
+    <color name="neutral_variant_80">#ffbec9c6</color>
+    <color name="neutral_variant_90">#ffdae5e1</color>
     <color name="colorAccent">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -7,4 +38,15 @@
     <color name="colorPrimaryDark">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="light_gray">#F0F5F5</color>
+    <color name="translucent_white">#80FFFFFF</color>
+    <color name="dark_gray">#243037</color>
+
+    <color name="light_blue">#59AAFF</color>
+    <color name="blue">#2C7DE3</color>
+    <color name="dark_blue">#1C6AC9</color>
+
+    <color name="alternative_white_light">#EEE</color>
+
 </resources>

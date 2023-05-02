@@ -21,4 +21,4 @@
 #-renamesourcefileattribute SourceFile
 
 
--keep class com.agilysys.payments.model.** { *; }
+-keep class com.agilysys.payments.** { *; }

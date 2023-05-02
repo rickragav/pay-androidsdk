@@ -1,36 +1,59 @@
-<?xml version="1.0" encoding="utf-8"?>
-
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:background="@color/cardview_light_background"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".view.CheckoutActivity"
-    android:layout_height="match_parent">
-    <com.google.android.material.appbar.AppBarLayout
+    android:id="@+id/content"
+    android:fitsSystemWindows="true"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:id="@+id/appbar"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:layout_height="?actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"/>
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main_area"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@+id/toolbar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent">
+
+        <com.agilysys.payments.payview.Payview
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:id="@+id/payview"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="?attr/colorPrimary"
-            app:titleTextColor="@color/white"
-            android:minHeight="?attr/actionBarSize"
-            android:theme="?attr/actionBarTheme"
-            tools:layout_editor_absoluteX="0dp"
-            tools:layout_editor_absoluteY="0dp" />
+            app:cardBgColor="@color/primary_80"
+            app:cardFgColor="@android:color/white"
+            app:cardTextColor="@color/black"
+            app:cardNameHelperText="Enter to card name. Max 25 characters."
+            app:cardCvTextSize="14"
+            app:cardNoTextSize="14"
+            app:cardNumberHelperText="You must enter your 16-digit card number."
+            app:cardYearTextSize="13"
+            app:cardNameTextSize="15"
+            app:cardMonthTextSize="13"
+            app:cardAnimationType="vertical"
+            app:cardCvErrorText="You must enter 3-digit characters"
+            app:cardMonthErrorText="You must enter 2-digit characters and you'll enter to number the most digit-value is '12'"
+            app:cardYearErrorText="You must enter 2-digit characters and you'll enter to number the most digit-value is '99'"
+            app:cardExpiredErrorText="Your card has expired. Please enter the usage date correctly."
+            />
 
-    </com.google.android.material.appbar.AppBarLayout>
-
+    </androidx.constraintlayout.widget.ConstraintLayout>
     <LinearLayout
-        app:layout_constraintTop_toBottomOf="@+id/appbar"
+        app:layout_constraintTop_toTopOf="parent"
         android:id="@+id/cardll"
         android:visibility="gone"
         android:layout_width="match_parent"
@@ -64,6 +87,19 @@
         <EditText
             android:background="@drawable/round_ui"
             android:id="@+id/cardNumber"
+            android:padding="10dp"
+            android:layout_margin="10dp"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:hint="Enter cardnumber"
+            android:textSize="14sp"
+
+            />
+        <com.agilysys.payments.creditcardformatter.CreditCardEditText
+            android:background="@drawable/round_ui"
+            android:id="@+id/cardNumberformatter"
             android:padding="10dp"
             android:layout_margin="10dp"
             android:layout_width="match_parent"
@@ -161,5 +197,5 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         android:indeterminateTint="@color/colorAccent"/>
-</androidx.constraintlayout.widget.ConstraintLayout>
 
+</androidx.constraintlayout.widget.ConstraintLayout>
